@@ -2,7 +2,7 @@
 
 A modern, responsive To-Do List App with Dark Mode & Filters.
 
-**🚀 Live Demo:** https://sammu-sarvepalli.github.io/Todo-List-App/
+**🚀 Live Demo:** https://sammu-sarvepalli.github.io/Todo-LIst-App/
 
 #✨ Features
 - ✅ Add / Edit / Delete Tasks
