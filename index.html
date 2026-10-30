@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My To-Do List App</title>
+<style>
+:root { --bg: #eef2f7; --card: #fff; --text: #222; --item: #f8f9ff; --border: #e0e0e0; }
+.dark { --bg: #121212; --card: #1e1e1e; --text: #eee; --item: #2a2a2a; --border: #333; }
+* { margin:0; padding:0; font-family: 'Segoe UI', sans-serif; box-sizing: border-box; transition: background 0.3s, color 0.3s; }
+body { background: var(--bg); display: flex; justify-content: center; padding: 40px 15px; min-height: 100vh; color: var(--text); }
+.todo-box { background: var(--card); width: 100%; max-width: 500px; padding: 25px; border-radius: 18px; box-shadow: 0 15px 35px rgba(0,0,0,0.15); }
+.header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.header h2 { font-size: 24px; }
+#themeBtn { border: none; background: var(--item); padding: 8px 12px; border-radius: 20px; cursor: pointer; font-size: 18px; border: 1px solid var(--border); }
+.counter { text-align: center; color: #888; margin-bottom: 18px; font-size: 14px; }
+.input-row { display: flex; gap: 10px; margin-bottom: 15px; }
+.input-row input { flex: 1; padding: 13px; border: 2px solid var(--border); border-radius: 10px; outline: none; background: var(--card); color: var(--text); }
+.input-row input:focus { border-color: #5c6bff; }
+.input-row button { padding: 13px 22px; background: #5c6bff; color: white; border: none; border-radius: 10px; cursor: pointer; font-weight: bold; }
+.filters { display: flex; gap: 8px; justify-content: center; margin-bottom: 20px; }
+.filters button { padding: 6px 14px; border-radius: 20px; border: 1px solid var(--border); background: var(--item); color: var(--text); cursor: pointer; font-size: 13px; }
+.filters button.active { background: #5c6bff; color: white; border-color: #5c6bff; }
+ul { list-style: none; }
+ul li { padding: 13px 12px; background: var(--item); margin-bottom: 10px; border-radius: 10px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; animation: slide 0.3s; border-left: 4px solid transparent; }
+@keyframes slide { from { opacity:0; transform: translateY(10px);} to { opacity:1; transform: translateY(0);} }
+ul li.completed { text-decoration: line-through; opacity: 0.6; border-left-color: #22c55e; background: #e6ffec; }
+.dark ul li.completed { background: #14331f; }
+ul li.hide { display: none; }
+.actions { display: flex; gap: 6px; }
+.actions span { padding: 5px 8px; border-radius: 6px; font-size: 14px; cursor: pointer; }
+.edit { background: #e0e7ff; } .del { background: #ffe0e0; color: #d00; }
+.dark .edit, .dark .del { color: #222; }
+.footer { display: flex; justify-content: space-between; margin-top: 20px; }
+.footer button { background: var(--item); border: 1px solid var(--border); padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 13px; color: var(--text); }
+.date { text-align: center; font-size: 12px; color: #999; margin-top: 15px; }
+</style>
+</head>
+<body>
+<div class="todo-box">
+  <div class="header">
+    <h2>📝 My To Do List</h2>
+    <button id="themeBtn" onclick="toggleTheme()">🌙</button>
+  </div>
+  <div class="counter" id="counter"></div>
+  <div class="input-row">
+    <input type="text" id="input" placeholder="Today's Schedule">
+    <button id="addBtn">Add</button>
+  </div>
+  <div class="filters">
+    <button class="active" onclick="filterTasks('all', this)">All</button>
+    <button onclick="filterTasks('pending', this)">Pending</button>
+    <button onclick="filterTasks('completed', this)">Completed</button>
+  </div>
+  <ul id="list"></ul>
+  <div class="footer">
+    <button onclick="clearCompleted()">Clear Completed</button>
+    <button onclick="clearAll()">Clear All</button>
+  </div>
+  <div class="date" id="date"></div>
+</div>
+
+<script>
+const input=document.getElementById("input"), list=document.getElementById("list"), counter=document.getElementById("counter"), addBtn=document.getElementById("addBtn");
+let editLi=null, currentFilter='all';
+
+document.getElementById("date").textContent = new Date().toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'short'});
+
+function toggleTheme(){
+  document.body.classList.toggle("dark");
+  const btn=document.getElementById("themeBtn");
+  btn.textContent = document.body.classList.contains("dark") ? "☀️" : "🌙";
+  localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+}
+if(localStorage.getItem("theme")==="dark"){ document.body.classList.add("dark"); document.getElementById("themeBtn").textContent="☀️"; }
+
+function updateCounter(){
+  let total=list.querySelectorAll("li").length, done=list.querySelectorAll("li.completed").length;
+  counter.textContent = `${total-done} pending | ${done} completed | Total: ${total}`;
+}
+function saveData(){ localStorage.setItem("todo-final", list.innerHTML); updateCounter(); }
+
+function createEvents(li){
+  li.querySelector(".del").onclick=e=>{e.stopPropagation(); li.remove(); saveData();};
+  li.querySelector(".edit").onclick=e=>{e.stopPropagation(); input.value=li.childNodes[0].textContent.trim(); editLi=li; addBtn.textContent="Update"; input.focus();};
+  li.onclick=e=>{if(e.target.classList.contains("edit")||e.target.classList.contains("del"))return; li.classList.toggle("completed"); saveData(); applyFilter();};
+}
+function addTask(){
+  if(input.value.trim()===""){alert("Write Your Today's Taks!"); return;}
+  if(editLi){ editLi.childNodes[0].textContent=input.value+" "; editLi=null; addBtn.textContent="Add"; input.value=""; saveData(); applyFilter(); return; }
+  let li=document.createElement("li"); li.innerHTML=`${input.value} <div class="actions"><span class="edit">✏️</span><span class="del">×</span></div>`;
+  createEvents(li); list.appendChild(li); input.value=""; saveData(); applyFilter();
+}
+addBtn.onclick=addTask; input.addEventListener("keypress", e=>{if(e.key==="Enter")addTask();});
+function clearCompleted(){ document.querySelectorAll("li.completed").forEach(el=>el.remove()); saveData(); }
+function clearAll(){ if(confirm("Clear All The Tasks?")){ list.innerHTML=""; saveData(); } }
+
+function filterTasks(type, btn){
+  currentFilter=type;
+  document.querySelectorAll(".filters button").forEach(b=>b.classList.remove("active"));
+  btn.classList.add("active");
+  applyFilter();
+}
+function applyFilter(){
+  list.querySelectorAll("li").forEach(li=>{
+    li.classList.remove("hide");
+    if(currentFilter==="pending" && li.classList.contains("completed")) li.classList.add("hide");
+    if(currentFilter==="completed" && !li.classList.contains("completed")) li.classList.add("hide");
+  });
+}
+function loadData(){
+  list.innerHTML=localStorage.getItem("todo-final")||"";
+  list.querySelectorAll("li").forEach(createEvents);
+  updateCounter(); applyFilter();
+}
+loadData();
+</script>
+</body>
+</html>
